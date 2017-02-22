@@ -45,7 +45,7 @@ ruleset app_registration_owner {
     pre {
       regPico = event:attr("new_child")
       regBase = meta:rulesetURI
-      regURL = "app_registration.krl"
+      regURL = "https://raw.githubusercontent.com/b1conrad/krl-sample/master/krl/app_registration.krl"
     }
     event:send(
       { "eci": regPico.eci, "eid": "ruleset-install",
