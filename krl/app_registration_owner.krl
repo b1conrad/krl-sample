@@ -50,8 +50,7 @@ ruleset app_registration_owner {
     event:send(
       { "eci": regPico.eci, "eid": "ruleset-install",
         "domain": "pico", "type": "new_ruleset",
-        "attrs": { "rid": "app_registration",
-                   "base": regBase, "url": regURL } } )
+        "attrs": { "base": regBase, "url": regURL } } )
     fired {
       ent:reg_pico := regPico
     }
