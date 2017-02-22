@@ -44,7 +44,7 @@ ruleset app_registration_owner {
     select when pico child_initialized
     pre {
       regPico = event:attr("new_child")
-      regBase = meta:rulesetURI
+//      regBase = meta:rulesetURI
       regURL = "https://raw.githubusercontent.com/b1conrad/krl-sample/master/krl/app_registration.krl"
     }
     event:send(
