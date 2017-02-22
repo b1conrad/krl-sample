@@ -36,8 +36,7 @@ ruleset app_registration_owner {
     fired {
       raise pico event "new_child_request"
         attributes { "dname": "Registration Pico",
-                     "color": "#7FFFD4",
-                     "section_id": section_id }
+                     "color": "#7FFFD4" }
     }
   }
 
