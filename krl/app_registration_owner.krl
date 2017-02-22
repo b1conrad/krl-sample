@@ -44,11 +44,14 @@ ruleset app_registration_owner {
     select when pico child_initialized
     pre {
       regPico = event:attr("new_child")
+      regBase = meta:rulesetURI
+      regURL = "app_registration.krl"
     }
     event:send(
       { "eci": regPico.eci, "eid": "ruleset-install",
         "domain": "pico", "type": "new_ruleset",
-        "attrs": { "rid": "app_registration" } } )
+        "attrs": { "rid": "app_registration",
+                   "base": regBase, "url": regURL } } )
     fired {
       ent:reg_pico := regPico
     }
