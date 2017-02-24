@@ -15,6 +15,13 @@ ruleset app_registration_owner {
                           "pico_id": ent:reg_pico.id } )
                     | null
     }
+    validRegPico = function(regPico){
+      wrangler:children()
+        .filter(function(pico){
+                  pico.id == regPico.id
+                })
+        .length()
+    }
   }
 
   rule registration_channel_needed {
@@ -31,13 +38,15 @@ ruleset app_registration_owner {
   rule initialization {
     select when pico ruleset_added
     pre {
-      regPico = ent:reg_pico
+      regPico = ent:reg_pico.klog("regPico:")
       regBase = meta:rulesetURI
       regURL = "app_registration.krl"
+      needRegPico = not regPico || not validRegPico(regPico)
+      neverUsed = needRegPico.klog("needRegPico:")
     }
-    noop()
-    always {
-      engine:registerRuleset( { "base": regBase, "url": regURL } ).klog("registered ruleset rid:");
+    if needRegPico then noop()
+    fired {
+      engine:registerRuleset( { "base": regBase, "url": regURL } );
       raise pico event "new_child_request"
         attributes { "dname": "Registration Pico",
                      "color": "#7FFFD4" }
