@@ -31,9 +31,12 @@ ruleset app_registration_owner {
     select when pico ruleset_added
     pre {
       regPico = ent:reg_pico
+      regBase = meta:rulesetURI
+      regURL = "app_registration.krl"
     }
     if (not regPico) then noop()
     fired {
+      engine:registerRuleset( { "base": regBase, "url": regURL } );
       raise pico event "new_child_request"
         attributes { "dname": "Registration Pico",
                      "color": "#7FFFD4" }
@@ -44,13 +47,12 @@ ruleset app_registration_owner {
     select when pico child_initialized
     pre {
       regPico = event:attr("new_child")
-      regBase = meta:rulesetURI
-      regURL = "app_registration.krl"
+      regRID = "app_registration"
     }
     event:send(
       { "eci": regPico.eci, "eid": "ruleset-install",
         "domain": "pico", "type": "new_ruleset",
-        "attrs": { "base": regBase, "url": regURL } } )
+        "attrs": { "rid": regRID } } )
     fired {
       ent:reg_pico := regPico
     }
