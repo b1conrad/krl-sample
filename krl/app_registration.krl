@@ -1,23 +1,25 @@
 ruleset app_registration {
   meta {
-    shares sectionCollection, __testing
+    shares __testing
     use module io.picolabs.pico alias wrangler
   }
   global {
-    __testing = { "queries": [ { "name": "__testing" },
-                               { "name": "sectionCollection" } ],
-                  "events": [ { "domain": "channel", "type": "needed",
-                                "attrs": [ "student_id" ] },
-                              { "domain": "section", "type": "needed",
+    __testing = { "queries": [ { "name": "__testing" } ],
+                  "events": [ { "domain": "section", "type": "needed",
                                 "attrs": [ "student_id", "section_id" ] } ] }
-    sectionCollection = function(section_id){
-      wrangler:children()[0] // for now assume it is the first child
-    }
     newSectionCollectionChannel = function(student_id,section_id){
-      engine:newChannel(
-        { "name": student_id + "/" + section_id,
-          "type": "anon",
-          "pico_id": sectionCollection(section_id).id } )
+      ent:sco_pico => engine:newChannel(
+                        { "name": student_id + "/" + section_id,
+                          "type": "anon",
+                          "pico_id": ent:sco_pico.id } )
+                    | null
+    }
+    validScoPico = function(scoPico){
+      wrangler:children()
+        .filter(function(pico){
+                  pico.id == scoPico.id
+                })
+        .length()
     }
   }
 
@@ -30,12 +32,45 @@ ruleset app_registration {
       anon_eci = anon_channel.id
                              .klog("anon_eci issued:")
     }
-    send_directive("section_collection")
-      with eci = anon_eci
-           section_id = section_id
+    if anon_channel then
+      send_directive("section_collection")
+        with eci = anon_eci
+             section_id = section_id
+      event:send(
+        { "eci": anon_eci, "eid": "section-needed",
+          "domain": "section", "type": "needed",
+          "attrs": event:attrs() } )
+  }
+
+  rule initialization {
+    select when pico ruleset_added
+    pre {
+      scoPico = ent:sco_pico
+      scoBase = meta:rulesetURI
+      scoURL = "app_section_collection.krl"
+      needScoPico = not scoPico || not validScoPico(scoPico)
+    }
+    if needScoPico then noop()
+    fired {
+      engine:registerRuleset( { "base": scoBase, "url": scoURL } );
+      raise pico event "new_child_request"
+        attributes { "dname": "Section Collection Pico",
+                     "color": "#7FFFD4" }
+    }
+  }
+
+  rule new_section_collection_pico {
+    select when pico child_initialized
+    pre {
+      scoPico = event:attr("new_child")
+      scoRID = "app_section_collection"
+    }
     event:send(
-      { "eci": anon_eci, "eid": 117,
-        "domain": "section", "type": "needed",
-        "attrs": event:attrs() } )
+      { "eci": scoPico.eci, "eid": "ruleset-install",
+        "domain": "pico", "type": "new_ruleset",
+        "attrs": { "rid": scoRID } } )
+    fired {
+      ent:sco_pico := scoPico
+    }
   }
 }
