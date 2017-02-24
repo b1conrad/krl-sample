@@ -38,11 +38,10 @@ ruleset app_registration_owner {
   rule initialization {
     select when pico ruleset_added
     pre {
-      regPico = ent:reg_pico.klog("regPico:")
+      regPico = ent:reg_pico
       regBase = meta:rulesetURI
       regURL = "app_registration.krl"
       needRegPico = not regPico || not validRegPico(regPico)
-      neverUsed = needRegPico.klog("needRegPico:")
     }
     if needRegPico then noop()
     fired {
