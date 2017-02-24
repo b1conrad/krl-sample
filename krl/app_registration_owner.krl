@@ -1,5 +1,6 @@
 ruleset app_registration_owner {
   meta {
+    use module io.picolabs.pico alias wrangler
     shares __testing
   }
   global {
@@ -34,9 +35,9 @@ ruleset app_registration_owner {
       regBase = meta:rulesetURI
       regURL = "app_registration.krl"
     }
-    if (not regPico) then noop()
-    fired {
-      engine:registerRuleset( { "base": regBase, "url": regURL } );
+    noop()
+    always {
+      engine:registerRuleset( { "base": regBase, "url": regURL } ).klog("registered ruleset rid:");
       raise pico event "new_child_request"
         attributes { "dname": "Registration Pico",
                      "color": "#7FFFD4" }
