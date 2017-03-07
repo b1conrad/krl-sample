@@ -190,4 +190,16 @@ ruleset app_section_collection {
       section_id.klog("from section")
     }
   }
+
+  rule initialization {
+    select when pico ruleset_added
+    pre {
+      secBase = meta:rulesetURI
+      secURL = "app_section.krl"
+    }
+    always {
+      engine:registerRuleset( { "base": secBase, "url": secURL } );
+      ent:sections := {}
+    }
+  }
 }
