@@ -45,12 +45,12 @@ ruleset app_registration {
   rule initialization {
     select when pico ruleset_added
     pre {
-      scoPico = ent:sco_pico.klog("scoPico")
-      scoBase = meta:rulesetURI.klog("scoBase")
-      scoURL = "app_section_collection.krl".klog("scoURL")
+      scoPico = ent:sco_pico
+      scoBase = meta:rulesetURI
+      scoURL = "app_section_collection.krl"
       needScoPico = not scoPico || not validScoPico(scoPico)
     }
-    if needScoPico.klog("needScoPico") then noop()
+    if needScoPico then noop()
     fired {
       engine:registerRuleset( { "base": scoBase, "url": scoURL } );
       raise pico event "new_child_request"
