@@ -22,4 +22,11 @@ ruleset mischief.thing {
         attributes attributes
     }
   }
+  rule mischief_hat_lifted {
+    select when mischief hat_lifted
+    always {
+      ent:status := "active";
+      ent:serial := ent:serial.defaultsTo(0) + 1
+    }
+  }
 }
