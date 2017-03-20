@@ -33,8 +33,7 @@ ruleset mischief.owner {
       thing1 = ent:things[0]
       thing2 = ent:things[1]
     }
-    if mischief && thing1 && thing2 then noop()
-    fired {
+    if mischief && thing1 && thing2 then 
       event:send(
         { "eci": mischief, "eid": "subscription",
           "domain": "wrangler", "type": "subscription",
@@ -43,7 +42,7 @@ ruleset mischief.owner {
                      "my_role": "controller",
                      "subscriber_role": "thing",
                      "channel_type": "subscription",
-                     "subscriber_eci": thing1 } } );
+                     "subscriber_eci": thing1 } } )
       event:send(
         { "eci": mischief, "eid": "subscription",
           "domain": "wrangler", "type": "subscription",
@@ -53,6 +52,5 @@ ruleset mischief.owner {
                      "subscriber_role": "thing",
                      "channel_type": "subscription",
                      "subscriber_eci": thing2 } } )
-    }
   }
 }
