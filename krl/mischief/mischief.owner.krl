@@ -12,9 +12,7 @@ ruleset mischief.owner {
   }
   global {
     __testing = { "queries": [ { "name": "__testing" } ],
-                  "events": [ { "domain": "mischief", "type": "who",
-                                "attrs": [ "eci" ] },
-                              { "domain": "mischief", "type": "subscriptions"} ] }
+                  "events": [ { "domain": "mischief", "type": "subscriptions"} ] }
   }
   rule mischief_who {
     select when mischief who
@@ -23,8 +21,6 @@ ruleset mischief.owner {
       things = wrangler:children().map(function(v){v.eci})
                                   .filter(function(v){v != mischief})
     }
-    send_directive("ecis") with mischief = mischief
-                                things = things
     always {
       ent:mischief := mischief;
       ent:things := things
