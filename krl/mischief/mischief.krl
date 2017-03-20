@@ -12,12 +12,13 @@ ruleset mischief {
   }
   global {
     __testing = { "queries": [ { "name": "__testing" } ],
-                  "events": [ { "domain": "mischief", "type": "identify"} ] }
+                  "events": [ { "domain": "mischief", "type": "identity"} ] }
   }
-  rule mischief_identify {
-    select when mischief identify    event:send(
-      { "eci": wrangler:parent().eci, "eid": "mischief-identify",
-        "domain": "mischief", "type": "identify",
+  rule mischief_identity {
+    select when mischief identity
+    event:send(
+      { "eci": wrangler:parent().eci, "eid": "mischief-identity",
+        "domain": "mischief", "type": "who",
         "attrs": { "eci": wrangler:myself().eci } } )
   }
 }
