@@ -3,7 +3,7 @@ ruleset check {
     select when check check
     pre {
       check = event:attr("check");
-      test = { [check,"mark"]: 0 };
+      test = { [check,"mark"]: 42 };
     }
     send_directive("check") with check = test and alpha = "omega";
     always {
