@@ -1,20 +1,21 @@
 ruleset io.picolabs.oauth_client {
   meta {
     use module io.picolabs.pico alias wrangler
-    shares __testing, whichPage
+    shares __testing, status
   }
   global {
     __testing = { "queries": [ { "name": "__testing" },
-                               { "name": "whichPage" } ],
+                               { "name": "status" } ],
                   "events": [ ] }
     authorizationEndpoint = "http://localhost:9001/authorize"
     tokenEndpoint = "http://localhost:9001/token"
     client_id = "oauth-client-1"
     client_secret = "oauth-client-secret-1"
     redirect_uris = ["http://localhost:9000/callback"]
+    application_home = "client.html#/index"
     protectedResource = "http://localhost:9002/resource"
-    whichPage = function() {
-      ent:page.defaultsTo("index")
+    status = function() {
+      result = { "access_token": ent:access_token, "scope": ent:scope }
     }
     encodeClientCredentials = function(username,password) {
       "b2F1dGgtY2xpZW50LTE6b2F1dGgtY2xpZW50LXNlY3JldC0x"
@@ -72,7 +73,7 @@ ruleset io.picolabs.oauth_client {
       token_type = content{"token_type"}.klog("token_type")
       scope = content{"scope"}.klog("scope")
     }
-    send_directive("OK") with access_token = access_token
+    send_directive("redirect") with url = application_home
     fired {
       ent:access_token := access_token;
       ent:token_type := token_type;
