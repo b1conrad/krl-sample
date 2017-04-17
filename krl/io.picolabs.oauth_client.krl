@@ -1,11 +1,12 @@
 ruleset io.picolabs.oauth_client {
   meta {
     use module io.picolabs.pico alias wrangler
-    shares __testing, status
+    shares __testing, status, getResource
   }
   global {
     __testing = { "queries": [ { "name": "__testing" },
-                               { "name": "status" } ],
+                               { "name": "status" },
+                               { "name": "getResource" } ],
                   "events": [ ] }
     authorizationEndpoint = "http://localhost:9001/authorize"
     tokenEndpoint = "http://localhost:9001/token"
@@ -14,11 +15,21 @@ ruleset io.picolabs.oauth_client {
     redirect_uris = ["http://localhost:9000/callback"]
     application_home = "client.html#/index"
     protectedResource = "http://localhost:9002/resource"
+    refreshToken = function() {
+      ent:refresh_token || "j2r3oj32r23rmasd98uhjrk2o3i"
+    }
     status = function() {
-      result = { "access_token": ent:access_token, "scope": ent:scope }
+      result = { "access_token": ent:access_token,
+                 "scope": ent:scope,
+                 "refresh_token": refreshToken() }
     }
     encodeClientCredentials = function(username,password) {
       "b2F1dGgtY2xpZW50LTE6b2F1dGgtY2xpZW50LXNlY3JldC0x"
+    }
+    getResource = function() {
+      resource = http:post(protectedResource) with
+        headers = { "Authorization": "Bearer " + ent:access_token };
+      resource
     }
   }
 
@@ -81,24 +92,4 @@ ruleset io.picolabs.oauth_client {
     }
   }
 
-  rule oauth_fetch_resource {
-    select when oauth fetch_resource
-    pre {
-      access_token = ent:access_token
-    }
-    if access_token then 
-      http:post(protectedResource) setting(resource) with
-        headers = { "Authorization": "Bearer " + access_token }
-    fired {
-      raise oauth event "got_resource" attributes resource.klog("resource")
-    }
-  }
-
-  rule oauth_got_resource {
-    select when oauth got_resource status_code re#200#
-    pre {
-      content = event:attr("content").klog("content").decode()
-    }
-    send_directive("OK") with content = content
-  }
 }
