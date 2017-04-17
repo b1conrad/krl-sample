@@ -7,7 +7,8 @@ ruleset io.picolabs.oauth_client {
     __testing = { "queries": [ { "name": "__testing" },
                                { "name": "status" },
                                { "name": "getResource" } ],
-                  "events": [ ] }
+                  "events": [ { "domain": "oauth", "type": "access_token_expired" } ]
+                }
     authorizationEndpoint = "http://localhost:9001/authorize"
     tokenEndpoint = "http://localhost:9001/token"
     client_id = "oauth-client-1"
@@ -29,7 +30,7 @@ ruleset io.picolabs.oauth_client {
     getResource = function() {
       resource = http:post(protectedResource) with
         headers = { "Authorization": "Bearer " + ent:access_token };
-      resource
+      resource.klog("resource")
     }
   }
 
@@ -83,13 +84,32 @@ ruleset io.picolabs.oauth_client {
       access_token = content{"access_token"}.klog("access_token")
       token_type = content{"token_type"}.klog("token_type")
       scope = content{"scope"}.klog("scope")
+      refresh_token = content{"refresh_token"}.klog("refresh_token").defaultsTo(refreshToken())
     }
     send_directive("redirect") with url = application_home
     fired {
       ent:access_token := access_token;
       ent:token_type := token_type;
-      ent:scope := scope
+      ent:scope := scope;
+      ent:refresh_token := refresh_token
     }
   }
 
+  rule oauth_access_token_expired {
+    select when oauth access_token_expired
+    pre {
+      refresh_token = refreshToken()
+    }
+    if refresh_token then
+      http:post(tokenEndpoint) setting(tokRes) with
+        headers = {
+          "Authorization": "Basic " + encodeClientCredentials(client_id,client_secret) }
+        form = {
+          "grant_type": "refresh_token",
+          "refresh_token": refresh_token }
+      send_directive("refresh_response") with response = tokRes
+    fired {
+      raise oauth event "access_token" attributes tokRes.klog("tokRes")
+    }
+  }
 }
