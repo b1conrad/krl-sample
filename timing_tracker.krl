@@ -4,39 +4,38 @@ ruleset timing_tracker {
   }
   global {
     entries = function() {
-      ent:timings.defaultsTo([])
+      ent:timings.defaultsTo({}).values()
+    }
+  }
+  rule timing_first_use {
+    select when timing started or timing finished
+    if ent:timings then noop()
+    notfired {
+      ent:timings := {}
     }
   }
   rule timing_started {
-    select when timing started
-      number re#([Nn]0*\d*)#
-      setting(number)
+    select when timing started number re#n0*(\d+)#i setting(ordinal_string)
     pre {
-      name = event:attr("name")
-      ordinal = number.extract(re#n0*(\d*)#i)[0].as("Number")
-      time_out = time:now()
-      exists = ent:timings.defaultsTo([])
-                          .filter(function(v){v{"ordinal"} == ordinal})
+      key = "N" + ordinal_string
     }
-    if exists.length() == 0 then noop()
-    fired {
-      ent:timings := ent:timings.defaultsTo([]).append({
-        "ordinal": ordinal,
-        "number": number,
-        "name": name,
-        "time_out": time_out })
+    if ent:timings >< key then noop()
+    notfired {
+      ent:timings{key} := {
+        "ordinal": ordinal_string.as("Number"),
+        "number": event:attr("number"),
+        "name": event:attr("name"),
+        "time_out": time:now() }
     }
   }
   rule timing_finished {
-    select when timing finished number re#n0*(\d*)#i setting(ordinal_string)
-    foreach ent:timings setting(v,k)
-      pre {
-        ordinal = ordinal_string.as("Number")
-        this_one = ordinal == v{"ordinal"}
-      }
-      if this_one then noop()
-      fired {
-        ent:timings{[k,"time_in"]} := time:now()
-      }
+    select when timing finished number re#n0*(\d+)#i setting(ordinal_string)
+    pre {
+      key = "N" + ordinal_string
+    }
+    if ent:timings >< key then noop()
+    fired {
+      ent:timings{[key,"time_in"]} := time:now()
+    }
   }
 }
