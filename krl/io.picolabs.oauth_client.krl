@@ -13,6 +13,10 @@ ruleset io.picolabs.oauth_client {
     tokenEndpoint = "http://localhost:9001/token"
     client_id = "oauth-client-1"
     client_secret = "oauth-client-secret-1"
+    encodeClientCredentials = function(username,password) {
+      // Base64(client_id + ":" + client_secret)
+      "b2F1dGgtY2xpZW50LTE6b2F1dGgtY2xpZW50LXNlY3JldC0x"
+    }
     redirect_uris = ["http://localhost:9000/callback"]
     application_home = "client.html#/index"
     protectedResource = "http://localhost:9002/resource"
@@ -23,9 +27,6 @@ ruleset io.picolabs.oauth_client {
       result = { "access_token": ent:access_token,
                  "scope": ent:scope,
                  "refresh_token": refreshToken() }
-    }
-    encodeClientCredentials = function(username,password) {
-      "b2F1dGgtY2xpZW50LTE6b2F1dGgtY2xpZW50LXNlY3JldC0x"
     }
     getResource = function() {
       resource = http:post(protectedResource) with
