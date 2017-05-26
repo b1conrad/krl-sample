@@ -66,13 +66,14 @@ ruleset app_section_collection {
                             | null
     }
     if exists && ent:sections{[section_id,"state"]} == "ready"
-    then
+    then every {
       engine:newChannel(the_section{"id"},section_name,"anon")
         setting(anon_channel)
       send_directive("section_ready",{
         "section_id": section_id,
         "section_state": the_section{["state"]},
         "eci": anon_channel{"id"}.klog("anon eci issued:")})
+    }
   }
  
   rule section_needed {
