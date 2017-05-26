@@ -82,7 +82,7 @@ A test ruleset for Registration
   }
 
   rule pico_ruleset_added {
-    select when pico ruleset_added
+    select when pico ruleset_added where rid == meta:rid
     pre {
       section_id = event:attr("section_id")
       attrs = event:attrs().klog("attrs")
@@ -126,8 +126,8 @@ A test ruleset for Registration
     select when section add_request  or 
         section drop_request or
         section config_empty
-    send_directive("section") with
-      section_info = sectionInfo()
+    send_directive("section",{
+      "section_info": sectionInfo()})
   }
  
 }

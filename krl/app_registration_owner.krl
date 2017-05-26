@@ -8,13 +8,6 @@ ruleset app_registration_owner {
       { "queries": [ { "name": "__testing" } ],
         "events": [ { "domain": "registration", "type": "channel_needed",
                       "attrs": [ "student_id" ] } ] }
-    newRegistrationChannel = function(student_id){
-      ent:reg_pico => engine:newChannel(
-                        { "name": student_id,
-                          "type": "anon",
-                          "pico_id": ent:reg_pico.id } )
-                    | null
-    }
     validRegPico = function(regPico){
       wrangler:children()
         .filter(function(pico){
@@ -28,24 +21,25 @@ ruleset app_registration_owner {
     select when registration channel_needed
     pre {
       student_id = event:attr("student_id")
-      anon_channel = newRegistrationChannel(student_id)
     }
-    if anon_channel then
-      send_directive("registration")
-        with eci = anon_channel.id.klog("anon_eci issued:")
+    if ent:reg_pico then
+      engine:newChannel(ent:reg_pico.id,student_id,"anon")
+        setting(anon_channel)
+      send_directive("registration",{
+        "eci": anon_channel.id.klog("anon eci issued:")})
   }
 
   rule initialization {
-    select when pico ruleset_added
+    select when pico ruleset_added where rid == meta:rid
     pre {
       regPico = ent:reg_pico
       regBase = meta:rulesetURI
       regURL = "app_registration.krl"
       needRegPico = not regPico || not validRegPico(regPico)
     }
-    if needRegPico then noop()
+    if needRegPico then
+      engine:registerRuleset(regURL,regBase)
     fired {
-      engine:registerRuleset( { "base": regBase, "url": regURL } );
       raise pico event "new_child_request"
         attributes { "dname": "Registration Pico",
                      "color": "#7FFFD4" }

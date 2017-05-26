@@ -7,13 +7,6 @@ ruleset app_registration {
     __testing = { "queries": [ { "name": "__testing" } ],
                   "events": [ { "domain": "section", "type": "needed",
                                 "attrs": [ "student_id", "section_id" ] } ] }
-    newSectionCollectionChannel = function(student_id,section_id){
-      ent:sco_pico => engine:newChannel(
-                        { "name": student_id + "/" + section_id,
-                          "type": "anon",
-                          "pico_id": ent:sco_pico.id } )
-                    | null
-    }
     validScoPico = function(scoPico){
       wrangler:children()
         .filter(function(pico){
@@ -28,31 +21,31 @@ ruleset app_registration {
     pre {
       student_id = event:attr("student_id")
       section_id = event:attr("section_id")
-      anon_channel = newSectionCollectionChannel(student_id,section_id)
-      anon_eci = anon_channel.id
-                             .klog("anon_eci issued:")
+      section_name = student_id + "/" + section_id
     }
-    if anon_channel then
-      send_directive("section_collection")
-        with eci = anon_eci
-             section_id = section_id
+    if ent:sco_pico then
+      engine:newChannel(ent:sco_pico.id,section_name,"anon")
+        setting(anon_channel)
+      send_directive("section_collection",{
+        "eci": anon_channel{"id"}.klog("anon eci issued:"),
+        "section_id": section_id})
       event:send(
-        { "eci": anon_eci, "eid": "section-needed",
+        { "eci": anon_channel{"id"}, "eid": "section-needed",
           "domain": "section", "type": "needed",
           "attrs": event:attrs() } )
   }
 
   rule initialization {
-    select when pico ruleset_added
+    select when pico ruleset_added where rid == meta:rid
     pre {
       scoPico = ent:sco_pico
       scoBase = meta:rulesetURI
       scoURL = "app_section_collection.krl"
       needScoPico = not scoPico || not validScoPico(scoPico)
     }
-    if needScoPico then noop()
+    if needScoPico then
+      engine:registerRuleset(scoURL,scoBase)
     fired {
-      engine:registerRuleset( { "base": scoBase, "url": scoURL } );
       raise pico event "new_child_request"
         attributes { "dname": "Section Collection Pico",
                      "color": "#7FFFD4" }

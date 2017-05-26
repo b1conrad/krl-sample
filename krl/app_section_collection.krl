@@ -29,13 +29,6 @@ ruleset app_section_collection {
     nameFromID = function(section_id) {
       "Section " + section_id + " Pico"
     }
-
-    newSectionChannel = function(student_id,section_id,the_section) {
-      engine:newChannel(
-        { "name": student_id + "/" + section_id,
-          "type": "anon",
-          "pico_id": the_section.id } )
-    }
   }
  
   rule collection_empty {
@@ -68,18 +61,18 @@ ruleset app_section_collection {
       section_id = event:attr("section_id")
       exists = ent:sections >< section_id
       student_id = event:attr("student_id")
+      section_name = student_id + "/" + section_id
       the_section = exists => ent:sections{[section_id]}
                             | null
-      anon_eci = exists && ent:sections{[section_id,"state"]} == "ready"
-                 => newSectionChannel(student_id,section_id,the_section).id
-                  | null
     }
-    if exists
+    if exists && ent:sections{[section_id,"state"]} == "ready"
     then
-      send_directive("section_ready")
-        with section_id    = section_id
-             section_state = the_section{["state"]}
-             eci           = anon_eci.klog("anon_eci issued:")
+      engine:newChannel(the_section{"id"},section_name,"anon")
+        setting(anon_channel)
+      send_directive("section_ready",{
+        "section_id": section_id,
+        "section_state": the_section{["state"]},
+        "eci": anon_channel{"id"}.klog("anon eci issued:")})
   }
  
   rule section_needed {
@@ -90,9 +83,9 @@ ruleset app_section_collection {
     }
     if not exists
     then
-      send_directive("section_ready")
-        with section_id = section_id
-             section_state = "creating"
+      send_directive("section_ready",{
+        "section_id": section_id,
+        "section_state": "creating"})
     fired {
       ent:sections{[section_id,"state"]} := "creating";
       raise pico event "new_child_request"
@@ -144,8 +137,8 @@ ruleset app_section_collection {
       child_to_delete = childFromID(section_id)
     }
     if exists then
-      send_directive("section_deleted")
-        with section_id = section_id
+      send_directive("section_deleted",{
+        "section_id": section_id})
     fired {
       raise pico event "delete_child_request"
         attributes child_to_delete;
@@ -192,13 +185,13 @@ ruleset app_section_collection {
   }
 
   rule initialization {
-    select when pico ruleset_added
+    select when pico ruleset_added where rid == meta:rid
     pre {
       secBase = meta:rulesetURI
       secURL = "app_section.krl"
     }
+    engine:registerRuleset(secURL,secBase)
     always {
-      engine:registerRuleset( { "base": secBase, "url": secURL } );
       ent:sections := {}
     }
   }
