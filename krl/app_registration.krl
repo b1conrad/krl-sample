@@ -23,7 +23,7 @@ ruleset app_registration {
       section_id = event:attr("section_id")
       section_name = student_id + "/" + section_id
     }
-    if ent:sco_pico then
+    if ent:sco_pico then every {
       engine:newChannel(ent:sco_pico.id,section_name,"anon")
         setting(anon_channel)
       send_directive("section_collection",{
@@ -33,6 +33,7 @@ ruleset app_registration {
         { "eci": anon_channel{"id"}, "eid": "section-needed",
           "domain": "section", "type": "needed",
           "attrs": event:attrs() } )
+    }
   }
 
   rule initialization {

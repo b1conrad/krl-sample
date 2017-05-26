@@ -22,11 +22,12 @@ ruleset app_registration_owner {
     pre {
       student_id = event:attr("student_id")
     }
-    if ent:reg_pico then
+    if ent:reg_pico then {
       engine:newChannel(ent:reg_pico.id,student_id,"anon")
         setting(anon_channel)
       send_directive("registration",{
         "eci": anon_channel.id.klog("anon eci issued:")})
+    }
   }
 
   rule initialization {
