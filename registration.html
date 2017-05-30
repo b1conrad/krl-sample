@@ -1,0 +1,323 @@
+<!DOCTYPE HTML>
+<html lang="en">
+<head>
+<title>Installing a system of picos using KRL</title>
+<meta charset="UTF-8">
+<style type="text/css">
+pre.code {
+  counter-reset: line;
+  border: 1px solid black;
+  display: inline-block;
+  margin-left: 5em;
+}
+pre.code code {
+  counter-increment: line;
+  padding: 0 0.5em 0 0;
+}
+pre.code code:before {
+  content: counter(line);
+  display: inline-block;
+  border-right: 1px dashed black;
+  margin-right: 0.5em;
+  padding-right: 0.5em;
+  width: 2em;
+  text-align: right;
+  background-color: silver;
+}
+img {
+  border: 1px solid black;
+  margin: 0 10px;
+}
+</style>
+</head>
+<body>
+<h1>Using KRL to install a system of picos</h1>
+<p>
+This is a proof of concept.
+How to create a collection of picos by installing
+one ruleset into the owner pico.
+</p>
+<p>
+Picos are available for use by anyone.
+Download the pico engine and/or study the documentation
+at the Picolabs website
+(<a href="http://picolabs.io" target="_blank">picolabs.io</a>).
+Picolabs is an open source project,
+and your contributions and use are invited.
+</p>
+<h2>KRL code</h2>
+<h3><code>app_registration_owner.krl</code> ruleset</h3>
+<p>
+A pico application is a number of picos which work together
+to perform a particular task or operation.
+It seems to me that the application ought to be represented by
+a ruleset in the Owner Pico.
+</p>
+<pre class="code">
+<code>ruleset app_registration_owner {</code>
+<code>  meta {</code>
+<code>    use module io.picolabs.pico alias wrangler</code>
+<code>    shares __testing</code>
+<code>  }</code>
+<code>  global {</code>
+<code>    __testing =</code>
+<code>      { "queries": [ { "name": "__testing" } ],</code>
+<code>        "events": [ { "domain": "registration", "type": "channel_needed",</code>
+<code>                      "attrs": [ "student_id" ] } ] }</code>
+<code>    validRegPico = function(regPico){</code>
+<code>      wrangler:children()</code>
+<code>        .filter(function(pico){</code>
+<code>                  pico.id == regPico.id</code>
+<code>                })</code>
+<code>        .length()</code>
+<code>    }</code>
+<code>  }</code>
+</pre>
+<p>
+This ruleset is intended for installation in the Owner Pico.
+This ruleset, and all of the others which make up this application,
+depend on the <code>io.picolabs.pico</code> ruleset,
+which is installed in all picos, including the Owner Pico.
+Besides using that ruleset as a module (line 3), this ruleset
+also expects and listens for two events that are raised by that ruleset,
+<code>pico:ruleset_added</code> and
+<code>pico:child_initialized</code>.
+</p>
+<p>
+This ruleset is installed in the Owner Pico by the application owner,
+using the "My Picos" page, in the Owner Pico's "Rulesets" tab.
+The owner enters the URL of the raw source code of this ruleset
+into the box beside the button "install ruleset from URL",
+then clicks on that button.
+</p>
+<img src="screen-reg0.png" alt="installing ruleset from URL" height="300">
+<p>
+We will now describe the series of events which unfold,
+resulting ultimately in the entire system of picos coming into
+existence, with their rulesets and relationships.
+</p>
+<p>
+When the owner has entered the URL at which she has hosted the KRL
+code of the application, she clicks on the "install ruleset from URL" button.
+The "My Picos" page sends a <code>pico:new_ruleset</code> event to
+the Owner Pico which includes the URL.
+The Owner Pico has been listening for this event, and the rule
+<code>pico_new_ruleset</code> will be selected and it will
+have the pico engine fetch the <code>app_registration_owner</code> ruleset,
+compile it, and install it in the Owner Pico.
+Having done this, the rule will <code>raise</code> the
+<code>pico:ruleset_added</code> event to the Owner Pico.
+From the instant the ruleset had been added to the Owner Pico,
+the Owner Pico began listening for the event,
+and the following rule will be selected and will run as part of the
+event sent by the "My Picos" page.
+</p>
+<pre class="code" style="counter-reset: line 32">
+<code>  rule initialization {</code>
+<code>    select when pico ruleset_added where rid == meta:rid</code>
+<code>    pre {</code>
+<code>      regPico = ent:reg_pico</code>
+<code>      regBase = meta:rulesetURI</code>
+<code>      regURL = "app_registration.krl"</code>
+<code>      needRegPico = not regPico || not validRegPico(regPico)</code>
+<code>    }</code>
+<code>    if needRegPico then</code>
+<code>      engine:registerRuleset(regURL,regBase)</code>
+<code>    fired {</code>
+<code>      raise pico event "new_child_request"</code>
+<code>        attributes { "dname": "Registration Pico",</code>
+<code>                     "color": "#7FFFD4" }</code>
+<code>    }</code>
+<code>  }</code>
+</pre>
+<p>
+Since the rule is freshly installed, it will not have a value for the
+entity variable <code>ent:reg_pico</code> and so the rule will fire.
+The action it will take (line 42) is to have the engine register the
+ruleset that it will need in its first child.
+Notice that the URL for the child's ruleset is "app_registration.krl",
+which is a <em>relative</em> URL.
+It is relative to the place-on-the-web from which this ruleset itself
+was fetched by the engine.
+The engine kept track of that location (an absolute URL) and provides
+it to us as <code>meta:rulesetURI</code>.
+Since the rule has fired, it will <code>raise</code> (lines 44-46) the event
+<code>pico:new_child_request</code> for which the Owner Pico is
+listening and which will be fielded by the <code>pico_new_child_request</code>
+rule in the <code>io.picolabs.pico</code> ruleset.
+</p>
+<p>
+That rule will result in the creation of a new child pico of the Owner Pico
+(which will have a display name of "Registration Pico" (line 45)
+and a particular color (line 46)),
+and when that child pico is ready, it will send a
+<code>pico:child_initialized</code> event,
+for which the Owner Pico is listening,
+and which will be fielded by the <code>new_registration_pico</code> rule in the
+<code>app_registration_owner</code> ruleset.
+</p>
+<pre class="code" style="counter-reset: line 49">
+<code>  rule new_registration_pico {</code>
+<code>    select when pico child_initialized</code>
+<code>    pre {</code>
+<code>      regPico = event:attr("new_child")</code>
+<code>      regRID = "app_registration"</code>
+<code>    }</code>
+<code>    event:send(</code>
+<code>      { "eci": regPico.eci, "eid": "ruleset-install",</code>
+<code>        "domain": "pico", "type": "new_ruleset",</code>
+<code>        "attrs": { "rid": regRID } } )</code>
+<code>    fired {</code>
+<code>      ent:reg_pico := regPico</code>
+<code>    }</code>
+<code>  }</code>
+</pre>
+<p>
+This rule will fire.
+It's action is to send a <code>pico:new_ruleset</code> event to the
+child pico, which will cause it to install the ruleset whose 
+ruleset identifier (RID) is "app_registration".
+You may remember that this ruleset was registered with the engine
+earlier (line 42).
+Finally, in its postlude, this ruleset will set the entity variable
+<code>ent:reg_pico</code> so that we can later access the child pico.
+</p>
+<p>
+As an aside, we can now point out that the <code>initialization</code>
+rule (lines 33-48) is <em>idempotent</em> because it will not fire,
+even if the event is selects for was triggered again,
+so long as the Owner Pico has a child matching <code>ent:reg_pico</code>.
+</p>
+<h3><code>app_registration</code> ruleset</h3>
+<p>
+At this point, the Owner Pico has a new child pico,
+named "Registration Pico", and this pico has the
+<code>app_registration</code> ruleset installed in it.
+</p>
+<pre class="code">
+<code>ruleset app_registration {</code>
+<code>  meta {</code>
+<code>    shares __testing</code>
+<code>    use module io.picolabs.pico alias wrangler</code>
+<code>  }</code>
+<code>  global {</code>
+<code>    __testing = { "queries": [ { "name": "__testing" } ],</code>
+<code>                  "events": [ { "domain": "section", "type": "needed",</code>
+<code>                                "attrs": [ "student_id", "section_id" ] } ] }</code>
+<code>    validScoPico = function(scoPico){</code>
+<code>      wrangler:children()</code>
+<code>        .filter(function(pico){</code>
+<code>                  pico.id == scoPico.id</code>
+<code>                })</code>
+<code>        .length()</code>
+<code>    }</code>
+<code>  }</code>
+</pre>
+<p>
+The story continues, because once this ruleset has been installed
+in the Registration Pico,
+it will receive the <code>pico:ruleset_added</code> event.
+</p>
+<pre class="code" style="counter-reset: line 38">
+<code>  rule initialization {</code>
+<code>    select when pico ruleset_added where rid == meta:rid</code>
+<code>    pre {</code>
+<code>      scoPico = ent:sco_pico</code>
+<code>      scoBase = meta:rulesetURI</code>
+<code>      scoURL = "app_section_collection.krl"</code>
+<code>      needScoPico = not scoPico || not validScoPico(scoPico)</code>
+<code>    }</code>
+<code>    if needScoPico then</code>
+<code>      engine:registerRuleset(scoURL,scoBase)</code>
+<code>    fired {</code>
+<code>      raise pico event "new_child_request"</code>
+<code>        attributes { "dname": "Section Collection Pico",</code>
+<code>                     "color": "#7FFFD4" }</code>
+<code>    }</code>
+<code>  }</code>
+</pre>
+<p>
+Following the pattern we have seen before, this rule will fire.
+It will (in line 48) ask the engine to register another ruleset,
+whose KRL code is at "app_section_collection.krl",
+once again relative to the original base URL.
+It will also request the creation of a child pico (lines 50-52),
+named "Section Collection Pico".
+When the child pico is ready, it will send the Registration Pico the
+<code>pico:child_initialized</code> event, for which we are prepared
+with the <code>new_section_collection_pico</code> rule.
+</p>
+<pre class="code" style="counter-reset: line 55">
+<code>  rule new_section_collection_pico {</code>
+<code>    select when pico child_initialized</code>
+<code>    pre {</code>
+<code>      scoPico = event:attr("new_child")</code>
+<code>      scoRID = "app_section_collection"</code>
+<code>    }</code>
+<code>    event:send(</code>
+<code>      { "eci": scoPico.eci, "eid": "ruleset-install",</code>
+<code>        "domain": "pico", "type": "new_ruleset",</code>
+<code>        "attrs": { "rid": scoRID } } )</code>
+<code>    fired {</code>
+<code>      ent:sco_pico := scoPico</code>
+<code>    }</code>
+<code>  }</code>
+</pre>
+<p>
+This rule will fire. It's action is to sent a <code>pico:new_ruleset</code>
+event to the child pico,
+which will cause it to install the <code>app_section_collection</code>
+ruleset.
+Finally, in its postlude, it will set the entity variable
+<code>ent:sco_pico</code> to keep track of its child pico.
+</p>
+<h3><code>app_section_collection</code> ruleset</h3>
+<p>
+At this point, the Registration Pico has a new child pico,
+in which is installed the <code>app_section_collection</code> ruleset.
+</p>
+<pre class="code">
+<code>ruleset app_section_collection {</code>
+<code>  meta {</code>
+<code>    use module io.picolabs.pico alias wrangler</code>
+<code>    shares sections, showChildren, __testing</code>
+<code>  }</code>
+<code>  global {</code>
+<code>    sections = function() {</code>
+<code>      ent:sections.defaultsTo({})</code>
+<code>    }</code>
+</pre>
+<p>
+The new child pico, SectionCollectionPico, will receive the
+<code>pico:ruleset_added</code> event,
+which will cause its <code>initialization</code> rule to fire.
+</p>
+<pre class="code" style="counter-reset: line 187">
+<code>  rule initialization {</code>
+<code>    select when pico ruleset_added where rid == meta:rid</code>
+<code>    pre {</code>
+<code>      secBase = meta:rulesetURI</code>
+<code>      secURL = "app_section.krl"</code>
+<code>    }</code>
+<code>    engine:registerRuleset(secURL,secBase)</code>
+<code>    always {</code>
+<code>      ent:sections := {}</code>
+<code>    }</code>
+<code>  }</code>
+</pre>
+<p>
+Its action (line 194) will have the engine register a fourth ruleset,
+whose URL is "app_section.krl" (relative to the original base URL).
+In its postlude, it will initialize <code>ent:sections</code>
+to an empty map.
+</p>
+<p>
+Since this ruleset doesn't call for the creation of another child pico (yet),
+this cascade of pico creation is complete,
+and we will have three picos including the Owner Pico.
+</p>
+<img src="screen-reg1.png" alt="showing the three picos" height="300">
+<address>&copy; CC-BY Bruce Conrad</address>
+<address>May 26, 2017</address>
+</body>
+</html>
