@@ -33,7 +33,7 @@ ruleset mischief.owner {
       thing1 = ent:things[0]
       thing2 = ent:things[1]
     }
-    if mischief && thing1 && thing2 then 
+    if mischief && thing1 && thing2 then every {
       event:send(
         { "eci": mischief, "eid": "subscription",
           "domain": "wrangler", "type": "subscription",
@@ -52,5 +52,6 @@ ruleset mischief.owner {
                      "subscriber_role": "thing",
                      "channel_type": "subscription",
                      "subscriber_eci": thing2 } } )
+    }
   }
 }
